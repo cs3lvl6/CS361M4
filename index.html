@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Quiz - Transmission Media</title>
+<h1 style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); margin-top: 10px; white-space: nowrap; color: white;">
+  Computer Networks Module 4
+</h1>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, 'Segoe UI', Tahoma, sans-serif; }
+  body {
+    background: #3b3f44;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+  }
+  .card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 720px;
+    border-radius: 20px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+    padding: 28px 26px;
+  }
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 16px;
+  }
+  .progress {
+    background: #e2e8f0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+  .question {
+    font-size: 19px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 15px;
+    color: #1e293b;
+    cursor: pointer;
+    transition: 0.15s;
+    text-align: left;
+    line-height: 1.5;
+  }
+  .option:hover:not(.locked) { background: #eff6ff; border-color: #93c5fd; }
+  .option.correct {
+    background: #dcfce7;
+    border-color: #22c55e;
+    color: #14532d;
+    font-weight: 600;
+  }
+  .option.wrong {
+    background: #fee2e2;
+    border-color: #ef4444;
+    color: #7f1d1d;
+  }
+  .option.locked { cursor: default; }
+  .explanation {
+    margin-top: 18px;
+    background: #eff6ff;
+    border-left: 5px solid #3b82f6;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 15px;
+    color: #1e3a8a;
+    line-height: 1.7;
+  }
+  .explanation strong { color: #1d4ed8; }
+  .nav-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .navbtn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .prevbtn {
+    background: #e2e8f0;
+    color: #334155;
+  }
+  .prevbtn:hover:not(:disabled) { background: #cbd5e1; }
+  .nextbtn {
+    background: #2563eb;
+    color: #fff;
+  }
+  .nextbtn:hover:not(:disabled) { background: #1d4ed8; }
+  .navbtn:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+  .final {
+    text-align: center;
+    padding: 20px 0;
+  }
+  .final h2 { font-size: 26px; color: #0f172a; margin-bottom: 10px; }
+  .final p { font-size: 18px; color: #475569; margin-bottom: 20px; }
+  .restart {
+    padding: 12px 28px;
+    background: #16a34a;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .restart:hover { background: #15803d; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="card" id="app"></div>
+
+<script>
+/* ============ Questions Data ============ */
+const questions = [
+  { q: "1. Where are transmission media located in relation to the Internet model?",
+    options: ["A) At the data link layer", "B) At the network layer", "C) Below the physical layer", "D) Above the physical layer"],
+    correct: 2,
+    explanation: "Transmission media are located below the physical layer and are directly controlled by it." },
+  { q: "2. Which layer is sometimes used to describe the position of transmission media?",
+    options: ["A) Layer 1", "B) Layer 0", "C) Layer 2", "D) Layer 7"],
+    correct: 1,
+    explanation: "Because transmission media are located below the physical layer, it is often said that they belong to layer zero." },
+  { q: "3. In what form are signals transmitted from one device to another through transmission media?",
+    options: ["A) Acoustic waves", "B) Electromagnetic energy", "C) Mechanical vibrations", "D) Chemical signals"],
+    correct: 1,
+    explanation: "Signals propagate through transmission media in the form of electromagnetic energy." },
+  { q: "4. What are the two broad categories into which transmission media can be classified?",
+    options: ["A) Analog and Digital", "B) Serial and Parallel", "C) Guided and Unguided", "D) Synchronous and Asynchronous"],
+    correct: 2,
+    explanation: "Transmission media are classified into two broad categories: guided (wired) and unguided (wireless)." },
+  { q: "5. Which of the following defines guided media?",
+    options: ["A) Media that broadcast signals in all directions through the air", "B) Media that use the ionosphere to reflect signals", "C) Media that provide a physical conduit from one device to another", "D) Media that rely on unguided line-of-sight propagation"],
+    correct: 2,
+    explanation: "Guided media provide a conduit or channel from one device to another." },
+  { q: "6. How is a signal contained when traveling along guided media?",
+    options: ["A) By encryption algorithms", "B) By the physical limits of the medium", "C) By directional antennas", "D) By error-correction codes"],
+    correct: 1,
+    explanation: "A signal traveling along guided media is directed and contained by the physical limits of the medium." },
+  { q: "7. Which of the following is NOT an example of guided media?",
+    options: ["A) Twisted-pair cable", "B) Coaxial cable", "C) Fiber-optic cable", "D) Radio waves"],
+    correct: 3,
+    explanation: "Twisted-pair, coaxial, and fiber-optic cables are guided media, whereas radio waves are unguided media." },
+  { q: "8. What form of energy do twisted-pair and coaxial cables use to transport signals?",
+    options: ["A) Light", "B) Electric current", "C) Infrared waves", "D) Acoustic waves"],
+    correct: 1,
+    explanation: "Twisted-pair and coaxial cables use metallic (copper) conductors that accept and transport signals in the form of electric current." },
+  { q: "9. What form of energy does an optical fiber use to transport signals?",
+    options: ["A) Electric current", "B) Light", "C) Radio waves", "D) Microwaves"],
+    correct: 1,
+    explanation: "Optical fiber is a glass cable that accepts and transports signals in the form of light." },
+  { q: "10. How many conductors are typically found in a single twisted pair?",
+    options: ["A) One", "B) Two", "C) Four", "D) Eight"],
+    correct: 1,
+    explanation: "A twisted pair consists of two conductors, normally made of copper." },
+  { q: "11. What is the function of the two wires in a twisted-pair cable?",
+    options: ["A) Both carry independent signals to double the data rate", "B) One is for receiving and one is for transmitting", "C) One carries the signal and the other is used as a ground reference", "D) Both are used as ground references"],
+    correct: 2,
+    explanation: "One wire is used to carry signals to the receiver, and the other is used only as a ground reference." },
+  { q: "12. How does the receiver utilize the two wires in a twisted-pair cable to determine the signal?",
+    options: ["A) It adds the voltages of both wires", "B) It takes the average of both wires", "C) It uses the difference between the two wires", "D) It multiplies the signals together"],
+    correct: 2,
+    explanation: "The receiver uses the difference between the signal on one wire and the ground reference on the other." },
+  { q: "13. Why are the two conductors in a twisted-pair cable twisted together?",
+    options: ["A) To increase the physical strength of the cable", "B) To reduce the amount of copper used", "C) To ensure that interference (noise) and crosstalk affect both wires equally", "D) To allow the cable to bend more easily"],
+    correct: 2,
+    explanation: "Twisting ensures that interference and crosstalk affect both wires simultaneously and equally, allowing the receiver to cancel out the unwanted signals by measuring the difference." },
+  { q: "14. What covers each conductor in a twisted-pair cable?",
+    options: ["A) Metal foil", "B) Braided mesh", "C) Its own plastic insulation", "D) Kevlar strands"],
+    correct: 2,
+    explanation: "Each conductor in a twisted pair has its own plastic insulation." },
+  { q: "15. What are the most common types of twisted-pair cables used in communications?",
+    options: ["A) Unshielded twisted-pair (UTP) and shielded twisted-pair (STP)", "B) Coaxial and Twinaxial", "C) Single-mode and Multimode", "D) Step-index and Graded-index"],
+    correct: 0,
+    explanation: "The most common twisted-pair cables are unshielded twisted-pair (UTP) and shielded twisted-pair (STP)." },
+  { q: "16. What physical feature distinguishes STP cable from UTP cable?",
+    options: ["A) STP uses glass instead of copper", "B) STP has a metal foil or braided-mesh covering that encases each pair", "C) STP has a larger plastic buffer", "D) STP only contains one wire"],
+    correct: 1,
+    explanation: "STP cable has a metal foil or braided-mesh covering that encases each pair of insulated conductors." },
+  { q: "17. What is the primary advantage of the metal casing in STP cable?",
+    options: ["A) It decreases the cost of the cable", "B) It makes the cable thinner", "C) It improves quality by preventing the penetration of noise or crosstalk", "D) It converts electric current into light"],
+    correct: 2,
+    explanation: "The metal casing improves the quality of the cable by preventing the penetration of noise or crosstalk." },
+  { q: "18. What are the main disadvantages of STP compared to UTP?",
+    options: ["A) It is slower and less secure", "B) It is big and more expensive", "C) It cannot support broadband speeds", "D) It requires frequent repeaters"],
+    correct: 1,
+    explanation: "Although the metal casing improves quality, it makes STP cable big and more expensive." },
+  { q: "19. According to the UTP categories, what is the maximum data rate for Category 1 cable, and what is its primary use?",
+    options: ["A) 10 Mbps; LANs", "B) 2 Mbps; T-1 lines", "C) <0.1 Mbps; Telephone", "D) 100 Mbps; LANs"],
+    correct: 2,
+    explanation: "Category 1 UTP has a data rate of <0.1 Mbps and is used for telephone lines." },
+  { q: "20. Which category of UTP was originally used for T-1 lines and supports a data rate of 2 Mbps?",
+    options: ["A) Category 2", "B) Category 3", "C) Category 4", "D) Category 5"],
+    correct: 0,
+    explanation: "Category 2 UTP was originally used in T-1 lines and supports a data rate of 2 Mbps." },
+  { q: "21. What is the typical use and data rate of Category 3 UTP cable?",
+    options: ["A) 2 Mbps for T-1 lines", "B) 10 Mbps for LANs", "C) 20 Mbps for Token Ring networks", "D) 100 Mbps for LANs"],
+    correct: 1,
+    explanation: "Category 3 is an improved version used in LANs that supports a data rate of 10 Mbps." },
+  { q: "22. Which UTP category provides a data rate of 20 Mbps and is associated with Token Ring networks?",
+    options: ["A) Category 2", "B) Category 3", "C) Category 4", "D) Category 5"],
+    correct: 2,
+    explanation: "Category 4 is an improved CAT 3 used in Token Ring networks with a data rate of 20 Mbps." },
+  { q: "23. What is the characteristic wire thickness of Category 5 UTP cable?",
+    options: ["A) 18 AWG", "B) 22 AWG", "C) 24 AWG", "D) 26 AWG"],
+    correct: 2,
+    explanation: "Category 5 cable wire is normally 24 AWG." },
+  { q: "24. What is the data rate and typical use of Category 5 UTP cable?",
+    options: ["A) 10 Mbps; Telephone", "B) 20 Mbps; Token Ring", "C) 100 Mbps; LANs", "D) 1000 Mbps; Wide Area Networks"],
+    correct: 2,
+    explanation: "Category 5 UTP is used in LANs and supports a data rate of 100 Mbps." },
+  { q: "25. What is the most common connector used for UTP cables?",
+    options: ["A) BNC connector", "B) ST connector", "C) RJ45 connector", "D) SC connector"],
+    correct: 2,
+    explanation: "The most common UTP connector is RJ45." },
+  { q: "26. What does the acronym \"RJ\" stand for in RJ45?",
+    options: ["A) Remote Jack", "B) Registered Jack", "C) Routing Junction", "D) Reference Joint"],
+    correct: 1,
+    explanation: "RJ stands for registered jack." },
+  { q: "27. How many pins are present in an RJ45 connector?",
+    options: ["A) 4", "B) 6", "C) 8", "D) 10"],
+    correct: 2,
+    explanation: "The diagram of the RJ-45 connector shows numbered pins from 1 to 8." },
+  { q: "28. When evaluating the performance of twisted-pair cable, what happens to attenuation as frequency increases?",
+    options: ["A) Attenuation remains constant", "B) Attenuation sharply increases with frequencies above 100 kHz", "C) Attenuation decreases", "D) Attenuation becomes zero"],
+    correct: 1,
+    explanation: "With increasing frequency, attenuation sharply increases with frequencies above 100 kHz." },
+  { q: "29. What unit is used to measure attenuation in cables?",
+    options: ["A) Hertz per kilometer (Hz/km)", "B) Decibels per kilometer (dB/km)", "C) Ohms per meter", "D) Watts per second"],
+    correct: 1,
+    explanation: "Attenuation is measured in decibels per kilometer (dB/km)." },
+  { q: "30. In the context of cabling, what does \"gauge\" measure?",
+    options: ["A) The length of the wire", "B) The thickness of the wire", "C) The amount of insulation", "D) The twist rate of the wire"],
+    correct: 1,
+    explanation: "Gauge is a measure of the thickness of the wire." },
+  { q: "31. Based on the UTP performance chart, which gauge of wire has the lowest attenuation at a given frequency?",
+    options: ["A) 18 gauge", "B) 22 gauge", "C) 24 gauge", "D) 26 gauge"],
+    correct: 0,
+    explanation: "The 18 gauge wire has the lowest attenuation curve compared to 22, 24, and 26 gauge wires." },
+  { q: "32. How is the central core conductor of a coaxial cable constructed?",
+    options: ["A) It uses a hollow glass tube", "B) It is composed of solid or stranded wire, usually copper", "C) It uses paired copper wires twisted together", "D) It relies on woven Kevlar threads"],
+    correct: 1,
+    explanation: "Coax has a central core conductor of solid or stranded wire (usually copper)." },
+  { q: "33. In a coaxial cable, what encloses the central core conductor?",
+    options: ["A) A metal foil shield", "B) A Kevlar jacket", "C) An insulating sheath/cover", "D) A secondary copper core"],
+    correct: 2,
+    explanation: "The central core is enclosed in an insulating sheath/cover." },
+  { q: "34. What serves as the second conductor in a coaxial cable?",
+    options: ["A) The inner copper wire", "B) The outer metallic wrapping", "C) The plastic cover", "D) The internal ground wire"],
+    correct: 1,
+    explanation: "The outer metallic wrapping serves as the second conductor, which completes the circuit." },
+  { q: "35. Besides acting as the second conductor, what is the other primary function of the outer metallic wrapping in a coaxial cable?",
+    options: ["A) It increases the speed of light", "B) It acts as a shield against noise", "C) It generates electric current", "D) It provides structural flexibility"],
+    correct: 1,
+    explanation: "The outer metallic wrapping serves both as a shield against noise and as the second conductor." },
+  { q: "36. How are categories of coaxial cables rated?",
+    options: ["A) By American Wire Gauge (AWG) numbers", "B) By their Radio Government (RG) ratings", "C) By Category (CAT) levels", "D) By Subminiature versions"],
+    correct: 1,
+    explanation: "Coaxial cables are categorized by their Radio Government (RG) ratings." },
+  { q: "37. What physical specifications do RG numbers denote for coaxial cables?",
+    options: ["A) Length, weight, and color", "B) Impedance, thickness, and usage", "C) Core material and cladding density", "D) Frequency range and signal speed"],
+    correct: 1,
+    explanation: "Each RG number denotes a unique set of physical specifications, including the impedance, thickness, and usage." },
+  { q: "38. What is the unit used to measure electrical impedance?",
+    options: ["A) Ampere", "B) Watt", "C) Ohm", "D) Volt"],
+    correct: 2,
+    explanation: "Impedance is measured in Ohms." },
+  { q: "39. What is the impedance and primary usage of RG-59 coaxial cable?",
+    options: ["A) 50 Ω; Thin Ethernet", "B) 50 Ω; Thick Ethernet", "C) 75 Ω; Cable TV", "D) 75 Ω; Token Ring"],
+    correct: 2,
+    explanation: "RG-59 has an impedance of 75 Ω and is used for Cable TV." },
+  { q: "40. Which RG category of coaxial cable has an impedance of 50 Ω and is used for Thin Ethernet?",
+    options: ["A) RG-11", "B) RG-58", "C) RG-59", "D) RG-45"],
+    correct: 1,
+    explanation: "RG-58 has an impedance of 50 Ω and is used for Thin Ethernet." },
+  { q: "41. What is the usage of the RG-11 coaxial cable category?",
+    options: ["A) Cable TV", "B) Thin Ethernet", "C) Thick Ethernet", "D) Telephony"],
+    correct: 2,
+    explanation: "RG-11 is used for Thick Ethernet and has a 50 Ω impedance." },
+  { q: "42. What is the most common type of connector used today to connect coaxial cable to devices?",
+    options: ["A) RJ45", "B) BNC", "C) SC", "D) ST"],
+    correct: 1,
+    explanation: "The most common type of connector used for coaxial cable today is the BNC connector." },
+  { q: "43. Which type of BNC connector is used to connect the end of the coaxial cable to a device, such as a TV set?",
+    options: ["A) BNC T connector", "B) BNC terminator", "C) BNC connector", "D) MT-RJ connector"],
+    correct: 2,
+    explanation: "The standard BNC connector is used to connect the end of the cable to a device, such as a TV set." },
+  { q: "44. Which coaxial connector is used in Ethernet networks to branch out to a connection to a computer or other device?",
+    options: ["A) BNC T connector", "B) BNC terminator", "C) RG-58", "D) Subscriber channel (SC)"],
+    correct: 0,
+    explanation: "The BNC T connector is used in Ethernet networks to branch out to a connection to a computer or other device." },
+  { q: "45. What is the function of a BNC terminator?",
+    options: ["A) It branches the signal to multiple devices", "B) It connects the cable to a TV set", "C) It acts as a shield against external noise", "D) It is used at the end of the cable to prevent the reflection of the signal"],
+    correct: 3,
+    explanation: "The BNC terminator is used at the end of the cable to prevent the reflection of the signal." },
+  { q: "46. How does the attenuation in coaxial cable compare to that in twisted-pair cable?",
+    options: ["A) It is much lower", "B) It is exactly the same", "C) It is much higher", "D) It is negative"],
+    correct: 2,
+    explanation: "The attenuation is much higher in coaxial cable than in twisted-pair cable." },
+  { q: "47. What is a consequence of the high attenuation in coaxial cables, despite having a higher bandwidth?",
+    options: ["A) It eliminates the need for any shielding", "B) It allows the signal to travel indefinitely", "C) The signal weakens rapidly and requires the frequent use of repeaters", "D) It restricts the cable to only audio signals"],
+    correct: 2,
+    explanation: "Because the signal weakens rapidly due to high attenuation, coaxial cable requires the frequent use of repeaters." },
+  { q: "48. What materials are used to make fiber-optic cables?",
+    options: ["A) Copper or aluminum", "B) Gold or silver", "C) Glass or plastic", "D) Teflon or Kevlar"],
+    correct: 2,
+    explanation: "A fiber-optic cable is made of glass or plastic." },
+  { q: "49. What physical principle states that light travels in a straight line?",
+    options: ["A) Only when it travels through multiple substances", "B) As long as it is moving through a single uniform substance", "C) When it enters a more dense medium", "D) When its speed exceeds the speed of sound"],
+    correct: 1,
+    explanation: "Light travels in a straight line as long as it is moving through a single uniform substance." },
+  { q: "50. What happens if a ray of light traveling through one substance suddenly enters another substance of a different density?",
+    options: ["A) The ray stops moving", "B) The ray changes direction", "C) The ray changes its wavelength to zero", "D) The ray maintains a perfect straight line"],
+    correct: 1,
+    explanation: "If a ray of light traveling through one substance suddenly enters another substance of a different density, the ray changes direction." },
+  { q: "51. What is the critical angle in relation to optical fibers?",
+    options: ["A) It is an identical constant for all types of materials", "B) It is a property of the substance, and its value is different from one substance to another", "C) It is always 90 degrees in unguided media", "D) It is the angle at which copper wires are twisted"],
+    correct: 1,
+    explanation: "The critical angle is a property of the substance, and its value is different from one substance to another." },
+  { q: "52. In optical fiber, what phenomenon is used to guide light through the channel?",
+    options: ["A) Refraction", "B) Reflection", "C) Diffraction", "D) Dispersion"],
+    correct: 1,
+    explanation: "Optical fibers use reflection to guide light through a channel." },
+  { q: "53. What is the relationship between the density of the core and the cladding in an optical fiber?",
+    options: ["A) The cladding is more dense than the core", "B) The core is more dense than the cladding", "C) They have the exact same density", "D) The core is made of plastic and the cladding is copper"],
+    correct: 1,
+    explanation: "The glass or plastic core is surrounded by a cladding of less dense glass or plastic." },
+  { q: "54. Why must the density of the cladding be less than that of the core?",
+    options: ["A) So the beam of light is refracted into the cladding", "B) To increase the flexibility of the wire", "C) So the beam of light is reflected off the cladding instead of being refracted into it", "D) To absorb excess light signals"],
+    correct: 2,
+    explanation: "The difference in density must be such that a beam of light moving through the core is reflected off the cladding instead of being refracted into it." },
+  { q: "55. What are the two main modes supported by current technology for propagating light along optical channels?",
+    options: ["A) Multimode and Single mode", "B) Wired and Wireless", "C) Guided and Unguided", "D) Reflected and Refracted"],
+    correct: 0,
+    explanation: "Current technology supports two modes for propagating light along optical channels: multimode and single mode." },
+  { q: "56. What are the subcategories of multimode propagation?",
+    options: ["A) Graded-index and Single mode", "B) Step-index and Graded-index", "C) Reflected and Refracted", "D) Unshielded and Shielded"],
+    correct: 1,
+    explanation: "Multimode includes step-index and graded-index." },
+  { q: "57. Why is multimode fiber so named?",
+    options: ["A) Because it carries signals from multiple senders at once", "B) Because multiple beams from a light source move through the core in different paths", "C) Because it uses multiple types of glass", "D) Because it has multiple claddings"],
+    correct: 1,
+    explanation: "Multimode is so named because multiple beams from a light source move through the core in different paths." },
+  { q: "58. In a multimode step-index fiber, how is the density of the core distributed?",
+    options: ["A) It is highest at the center and lowest at the edges", "B) It remains constant from the center to the edges", "C) It alternates sequentially", "D) It changes based on the light frequency"],
+    correct: 1,
+    explanation: "In multimode step-index fiber, the density of the core remains constant from the center to the edges." },
+  { q: "59. What causes the abrupt change in the beam's motion in a step-index fiber?",
+    options: ["A) The beam reaching the highly dense center", "B) The beam reaching the interface of the core and the cladding where there is a lower density", "C) The beam bouncing off the Kevlar jacket", "D) The temperature variations inside the wire"],
+    correct: 1,
+    explanation: "The beam travels in a straight line until it reaches the interface of the core and the cladding, where there is an abrupt change due to a lower density." },
+  { q: "60. What negative effect does the \"step-index\" abrupt change have on the signal?",
+    options: ["A) It increases signal amplification", "B) It contributes to the distortion of the signal as it passes through the fiber", "C) It eliminates all light waves", "D) It converts the signal to a radio wave"],
+    correct: 1,
+    explanation: "The term step-index refers to the suddenness of this change, which contributes to the distortion of the signal." },
+  { q: "61. In multimode graded-index fiber, how is the density of the core distributed?",
+    options: ["A) It is constant throughout", "B) It is lowest at the center and highest at the edge", "C) Density is highest at the center of the core and decreases gradually to its lowest at the edge", "D) Density varies randomly"],
+    correct: 2,
+    explanation: "Density is highest at the center of the core and decreases gradually to its lowest at the edge." },
+  { q: "62. What does the word \"index\" refer to in graded-index fiber?",
+    options: ["A) The index of reflection", "B) The index of refraction", "C) The data rate capacity", "D) The categorization number of the cable"],
+    correct: 1,
+    explanation: "The word index here refers to the index of refraction." },
+  { q: "63. What is the main advantage of using graded-index fiber over step-index multimode fiber?",
+    options: ["A) It supports unguided wave transmission", "B) It completely eliminates the need for cladding", "C) It decreases the distortion of the signal through the cable", "D) It provides electrical grounding"],
+    correct: 2,
+    explanation: "A graded-index fiber decreases this distortion of the signal through the cable." },
+  { q: "64. What type of fiber does single-mode propagation use?",
+    options: ["A) Multimode graded-index fiber", "B) Step-index fiber", "C) Twinaxial fiber", "D) Coaxial core fiber"],
+    correct: 1,
+    explanation: "Single-mode uses step-index fiber." },
+  { q: "65. What kind of light source is used in single-mode fiber?",
+    options: ["A) An omnidirectional light bulb", "B) A highly focused source of light", "C) An infrared remote control", "D) A radio transmitter"],
+    correct: 1,
+    explanation: "Single-mode uses a highly focused source of light." },
+  { q: "66. How does the diameter of single-mode fiber compare to multimode fiber?",
+    options: ["A) Single-mode has a much larger diameter", "B) They have identical diameters", "C) Single-mode has a much smaller diameter", "D) Single-mode diameter varies with frequency"],
+    correct: 2,
+    explanation: "The single-mode fiber itself is manufactured with a much smaller diameter than that of multimode fiber." },
+  { q: "67. What is the impact of the substantially lower density in single-mode fiber?",
+    options: ["A) It results in a critical angle close enough to 90 degrees to make beam propagation almost horizontal", "B) It causes beams to bounce continuously back and forth at sharp angles", "C) It forces the light to refract completely into the cladding", "D) It makes the cable opaque to light"],
+    correct: 0,
+    explanation: "The decrease in density results in a critical angle that is close enough to 90 degrees to make the propagation of beams almost horizontal." },
+  { q: "68. Because the propagation of different beams is almost identical in single-mode fiber, what is the effect on signal delays and distortion?",
+    options: ["A) Delays are maximized to ensure synchronicity", "B) Delays are negligible and beams arrive together, yielding little distortion", "C) Distortion is high but easily corrected by repeaters", "D) Signals arrive at significantly different times"],
+    correct: 1,
+    explanation: "Propagation of different beams is almost identical, delays are negligible, and all beams arrive at the destination \"together\" to be recombined with little distortion." },
+  { q: "69. In a typical fiber-optic cable, what materials can the outer jacket be made of?",
+    options: ["A) Copper or Aluminum", "B) Glass or Plastic", "C) PVC or Teflon", "D) Kevlar or Nylon"],
+    correct: 2,
+    explanation: "The outer jacket is made of either PVC or Teflon." },
+  { q: "70. What is the purpose of Kevlar strands inside a fiber-optic cable?",
+    options: ["A) To carry the electrical ground", "B) To strengthen the cable", "C) To reflect light back into the core", "D) To cushion the fiber"],
+    correct: 1,
+    explanation: "Inside the jacket are Kevlar strands to strengthen the cable." },
+  { q: "71. What famous application utilizes Kevlar due to its high strength?",
+    options: ["A) Lightbulbs", "B) Bulletproof vests", "C) Ethernet connectors", "D) Television antennas"],
+    correct: 1,
+    explanation: "Kevlar is a strong material used in the fabrication of bulletproof vests." },
+  { q: "72. What surrounds the central core/cladding assembly to cushion the fiber inside the cable?",
+    options: ["A) A plastic buffer", "B) An outer metal shield", "C) A braided copper mesh", "D) A Teflon core"],
+    correct: 0,
+    explanation: "Below the Kevlar is another plastic coating (buffer) to cushion the fiber." },
+  { q: "73. Which fiber-optic connector is commonly used for cable TV?",
+    options: ["A) ST connector", "B) BNC connector", "C) Subscriber channel (SC) connector", "D) MT-RJ connector"],
+    correct: 2,
+    explanation: "The subscriber channel (SC) connector is used for cable TV." },
+  { q: "74. Which fiber-optic connector is used for connecting cable to networking devices?",
+    options: ["A) MT-RJ connector", "B) SC connector", "C) BNC T connector", "D) Straight-tip (ST) connector"],
+    correct: 3,
+    explanation: "The straight-tip (ST) connector is used for connecting cable to networking devices." },
+  { q: "75. Which fiber-optic connector is designed to be the same size as an RJ45 connector?",
+    options: ["A) SC connector", "B) ST connector", "C) BNC connector", "D) MT-RJ connector"],
+    correct: 3,
+    explanation: "MT-RJ is a connector that is the same size as RJ45." },
+  { q: "76. How does attenuation in fiber-optic cables compare to twisted-pair and coaxial cables across different frequencies/wavelengths?",
+    options: ["A) It is much sharper and rises quickly", "B) It is flatter", "C) It increases exponentially", "D) It relies entirely on gauge size"],
+    correct: 1,
+    explanation: "Attenuation is flatter than in the case of twisted-pair cable and coaxial cable." },
+  { q: "77. How many repeaters are typically needed when using fiber-optic cable compared to copper cables?",
+    options: ["A) 10 times as many", "B) The exact same amount", "C) Fewer, actually 1/10 as many", "D) None are ever required"],
+    correct: 2,
+    explanation: "We need fewer (actually 1/10 as many) repeaters when we use fiber-optic cable." },
+  { q: "78. What defining feature distinguishes unguided media from guided media?",
+    options: ["A) Unguided media transport waves without using a physical conductor", "B) Unguided media use a metal conduit", "C) Unguided media are limited strictly to line-of-sight indoors", "D) Unguided media are immune to all interference"],
+    correct: 0,
+    explanation: "Unguided medium transport waves without using a physical conductor." },
+  { q: "79. What is the common term used to refer to communication that utilizes unguided media?",
+    options: ["A) Wired communication", "B) Infrared linkage", "C) Wireless communication", "D) Fiber-optic communication"],
+    correct: 2,
+    explanation: "This type of communication is often referred to as wireless communication." },
+  { q: "80. Because unguided signals are broadcast through free space, who can receive them?",
+    options: ["A) Only devices with matching IP addresses", "B) Anyone who has a device capable of receiving them", "C) Only military personnel", "D) Only devices connected via RJ45"],
+    correct: 1,
+    explanation: "Signals are broadcast through free space and thus are available to anyone who has a device capable of receiving them." },
+  { q: "81. What is the frequency range of the electromagnetic spectrum used for wireless communication?",
+    options: ["A) 1 kHz to 100 MHz", "B) 3 kHz to 900 THz", "C) 300 GHz to 400 THz", "D) 2 MHz to 30 MHz"],
+    correct: 1,
+    explanation: "The part of the electromagnetic spectrum used for wireless communication ranges from 3 kHz to 900 THz." },
+  { q: "82. What propagation method involves low-frequency signals that emanate in all directions and follow the curvature of the earth?",
+    options: ["A) Line-of-sight propagation", "B) Ground propagation", "C) Sky propagation", "D) Infrared propagation"],
+    correct: 1,
+    explanation: "In ground propagation, radio waves emanate in all directions from the transmitting antenna and follow the curvature of the earth." },
+  { q: "83. In ground propagation, what primarily determines the distance the signal can travel?",
+    options: ["A) The curvature of the earth", "B) The height of the ionosphere", "C) The amount of power in the signal", "D) The alignment of the antennas"],
+    correct: 2,
+    explanation: "Distance depends on the amount of power in the signal: The greater the power, the greater the distance." },
+  { q: "84. What is the typical frequency range for ground propagation?",
+    options: ["A) 2-30 MHz", "B) Above 30 MHz", "C) Below 2 MHz", "D) 300-400 THz"],
+    correct: 2,
+    explanation: "Ground propagation uses frequencies below 2 MHz." },
+  { q: "85. In which propagation method do higher-frequency radio waves radiate upward and reflect back to earth?",
+    options: ["A) Ground propagation", "B) Sky propagation", "C) Line-of-sight propagation", "D) Refracted propagation"],
+    correct: 1,
+    explanation: "In sky propagation, higher-frequency radio waves radiate upward into the ionosphere where they are reflected back to earth." },
+  { q: "86. What is a key advantage of sky propagation?",
+    options: ["A) It works underground", "B) It is immune to weather", "C) It allows for greater distances with lower output power", "D) It strictly limits signals to a single building"],
+    correct: 2,
+    explanation: "This type of transmission allows for greater distances with lower output power." },
+  { q: "87. What atmospheric layer is responsible for reflecting signals back to earth in sky propagation?",
+    options: ["A) The troposphere", "B) The stratosphere", "C) The ionosphere", "D) The exosphere"],
+    correct: 2,
+    explanation: "Radio waves radiate upward into the ionosphere (where particles exist as ions) where they are reflected back to earth." },
+  { q: "88. What is the characteristic frequency range for sky propagation?",
+    options: ["A) Below 2 MHz", "B) 2-30 MHz", "C) 30-300 MHz", "D) Above 300 GHz"],
+    correct: 1,
+    explanation: "Sky propagation uses frequencies from 2-30 MHz." },
+  { q: "89. How are signals transmitted in line-of-sight propagation?",
+    options: ["A) They follow the curve of the earth", "B) They bounce off the ionosphere", "C) They are transmitted in straight lines directly from antenna to antenna", "D) They are transmitted through physical underground cables"],
+    correct: 2,
+    explanation: "In line-of-sight propagation, signals are transmitted in straight lines directly from antenna to antenna." },
+  { q: "90. What physical condition is required for the antennas in line-of-sight propagation?",
+    options: ["A) They must be omnidirectional and low to the ground", "B) They must be directional, facing each other, and tall or close enough not to be affected by earth's curvature", "C) One must be in space and one on the ground", "D) They must be placed exactly 100 km apart"],
+    correct: 1,
+    explanation: "Antennas must be directional, facing each other, and either tall enough or close enough together not to be affected by the curvature of the earth." },
+  { q: "91. Why is line-of-sight propagation considered tricky?",
+    options: ["A) Because it only works at night", "B) Because radio transmissions cannot be completely focused", "C) Because the ionosphere constantly absorbs the signals", "D) Because it requires extremely low frequencies"],
+    correct: 1,
+    explanation: "Line-of sight propagation is tricky because radio transmissions cannot be completely focused." },
+  { q: "92. What frequency range is generally used for line-of-sight propagation?",
+    options: ["A) Below 2 MHz", "B) 2-30 MHz", "C) Above 30 MHz", "D) 3 kHz to 100 kHz"],
+    correct: 2,
+    explanation: "Line-of-sight propagation uses frequencies above 30 MHz." },
+  { q: "93. What is the frequency range commonly designated for radio waves?",
+    options: ["A) 3 kHz and 1 GHz", "B) 1 GHz and 300 GHz", "C) 300 GHz and 400 THz", "D) 400 THz and 900 THz"],
+    correct: 0,
+    explanation: "Electromagnetic waves ranging in frequencies between 3 kHz and 1 GHz are normally called radio waves." },
+  { q: "94. What is considered a better criterion for classifying unguided waves than strict frequency ranges?",
+    options: ["A) The cost of transmission", "B) The behavior of the waves", "C) The size of the transmitting device", "D) The geographic location"],
+    correct: 1,
+    explanation: "The behavior of the waves, rather than the frequencies, is a better criterion for classification." },
+  { q: "95. What type of antennas do radio waves typically use?",
+    options: ["A) Parabolic dish antennas", "B) Horn antennas", "C) Omnidirectional antennas", "D) BNC terminator antennas"],
+    correct: 2,
+    explanation: "Radio waves use omnidirectional antennas that send out signals in all directions." },
+  { q: "96. Because radio waves are omnidirectional, what kind of broadcasting are they particularly useful for?",
+    options: ["A) Unicasting", "B) Multicasting", "C) Point-to-point networking", "D) Secure private banking channels"],
+    correct: 1,
+    explanation: "The omnidirectional characteristics of radio waves make them useful for multicasting, in which there is one sender but many receivers." },
+  { q: "97. Which of the following is an example of an application that relies on the multicasting ability of radio waves?",
+    options: ["A) Fiber-optic backbone routing", "B) AM and FM radio, television, and cordless phones", "C) Remote control operation in a single room", "D) Cable TV distribution"],
+    correct: 1,
+    explanation: "AM and FM radio, television, maritime radio, and cordless phones are examples of multicasting." },
+  { q: "98. What frequency range defines microwaves?",
+    options: ["A) 3 kHz to 1 GHz", "B) 1 to 300 GHz", "C) 300 to 400 GHz", "D) 400 THz to 900 THz"],
+    correct: 1,
+    explanation: "Electromagnetic waves having frequencies between 1 and 300 GHz are called microwaves." },
+  { q: "99. Unlike radio waves, what directional property do microwaves have?",
+    options: ["A) They are omnidirectional", "B) They are multidirectional", "C) They are unidirectional and can be narrowly focused", "D) They randomly change direction"],
+    correct: 2,
+    explanation: "Microwaves are unidirectional. When an antenna transmits microwaves, they can be narrowly focused." },
+  { q: "100. What is an obvious advantage of the unidirectional property of microwaves?",
+    options: ["A) A single sender can broadcast to millions of randomly placed receivers effortlessly", "B) A pair of antennas can be aligned without interfering with another pair of aligned antennas", "C) The waves bend to avoid physical obstacles", "D) They do not require an antenna"],
+    correct: 1,
+    explanation: "A pair of antennas can be aligned without interfering with another pair of aligned antennas." },
+  { q: "101. What are the two types of antennas commonly used for microwave communications?",
+    options: ["A) RJ45 and BNC", "B) Omnidirectional and Isotropic", "C) The parabolic dish and the horn", "D) Step-index and Graded-index"],
+    correct: 2,
+    explanation: "Two types of antennas are used for microwave communications: the parabolic dish and the horn." },
+  { q: "102. How does a parabolic dish antenna work?",
+    options: ["A) It scatters a narrow beam into an omnidirectional broadcast", "B) It works as a funnel, catching a wide range of waves and directing them to a common point", "C) It filters out radio waves and allows only visible light", "D) It utilizes Kevlar padding to bounce waves"],
+    correct: 1,
+    explanation: "The parabolic dish works as a funnel, catching a wide range of waves and directing them to a common point (focus)." },
+  { q: "103. What is the frequency range of infrared waves?",
+    options: ["A) 3 kHz to 1 GHz", "B) 1 to 300 GHz", "C) 300 GHz to 400 THz", "D) 400 THz to 900 THz"],
+    correct: 2,
+    explanation: "Infrared waves have frequencies from 300 GHz to 400 THz." },
+  { q: "104. What is the corresponding wavelength range for infrared waves?",
+    options: ["A) 1 mm to 770 nm", "B) 1 m to 10 m", "C) 770 nm to 400 nm", "D) 1 km to 100 km"],
+    correct: 0,
+    explanation: "Infrared waves correspond to wavelengths from 1 mm to 770 nm." },
+  { q: "105. For what kind of communication are infrared waves typically used?",
+    options: ["A) Long-range intercontinental satellite uplinks", "B) Wide Area Network (WAN) routing", "C) Short-range communication", "D) Underground communication"],
+    correct: 2,
+    explanation: "Infrared waves can be used for short-range communication." },
+  { q: "106. What limiting physical characteristic do infrared waves have due to their high frequencies?",
+    options: ["A) They easily pass through solid walls", "B) They cannot penetrate walls", "C) They are instantly absorbed by glass", "D) They bend around tall buildings"],
+    correct: 1,
+    explanation: "Infrared waves, having high frequencies, cannot penetrate walls." },
+  { q: "107. Why is the inability of infrared waves to penetrate walls considered an advantageous characteristic?",
+    options: ["A) It traps heat inside the room", "B) It ensures the signal travels infinitely", "C) It prevents interference between one system and another in adjacent rooms", "D) It allows the signal to travel faster than light"],
+    correct: 2,
+    explanation: "This advantageous characteristic prevents interference between one system and another; a short-range communication system in one room cannot be affected by another system in the next room." },
+  { q: "108. Which common household device operates using infrared waves and relies on the fact that signals won't interfere with neighbors?",
+    options: ["A) Microwave oven", "B) AM Radio", "C) Cordless phone", "D) Infrared remote control"],
+    correct: 3,
+    explanation: "When we use our infrared remote control, we do not interfere with the use of the remote by our neighbors." }
+];
+
+/* ============ Quiz Logic ============ */
+const app = document.getElementById('app');
+let currentIndex = 0;
+let score = 0;
+let userAnswers = questions.map(() => ({ selectedIndex: null, answered: false }));
+
+function renderQuestion() {
+  const q = questions[currentIndex];
+  const total = questions.length;
+  const state = userAnswers[currentIndex];
+
+  app.innerHTML = `
+    <div class="topbar">
+      <span>Question ${currentIndex + 1} of ${total}</span>
+      <span class="progress">Score: ${score}</span>
+    </div>
+    <div class="question">${q.q}</div>
+    <div class="options" id="options"></div>
+    <div class="explanation ${state.answered ? '' : 'hidden'}" id="explanation">
+      <strong>✅ Correct Answer:</strong> ${q.options[q.correct]}<br><br>
+      <strong>💡 Explanation:</strong> ${q.explanation}
+    </div>
+    <div class="nav-buttons">
+      <button class="navbtn prevbtn" id="prevBtn" ${currentIndex === 0 ? 'disabled' : ''}>← Previous</button>
+      <button class="navbtn nextbtn" id="nextBtn" ${state.answered ? '' : 'disabled'}>
+        ${currentIndex === total - 1 ? 'Show Results 🎯' : 'Next →'}
+      </button>
+    </div>
+  `;
+
+  const optionsBox = document.getElementById('options');
+  q.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option';
+    div.textContent = opt;
+
+    if (state.answered) {
+      div.classList.add('locked');
+      if (i === q.correct) {
+        div.classList.add('correct');
+      } else if (i === state.selectedIndex) {
+        div.classList.add('wrong');
+      }
+    } else {
+      div.onclick = () => selectOption(i, div);
+    }
+    optionsBox.appendChild(div);
+  });
+
+  document.getElementById('nextBtn').onclick = nextQuestion;
+  document.getElementById('prevBtn').onclick = prevQuestion;
+}
+
+function selectOption(index, el) {
+  const state = userAnswers[currentIndex];
+  if (state.answered) return;
+
+  state.answered = true;
+  state.selectedIndex = index;
+  const q = questions[currentIndex];
+  const allOptions = document.querySelectorAll('.option');
+  allOptions.forEach(o => o.classList.add('locked'));
+
+  if (index === q.correct) {
+    el.classList.add('correct');
+    score++;
+  } else {
+    el.classList.add('wrong');
+    allOptions[q.correct].classList.add('correct');
+  }
+
+  document.querySelector('.progress').textContent = `Score: ${score}`;
+  document.getElementById('explanation').classList.remove('hidden');
+  document.getElementById('nextBtn').disabled = false;
+}
+
+function nextQuestion() {
+  if (currentIndex < questions.length - 1) {
+    currentIndex++;
+    renderQuestion();
+  } else {
+    showResults();
+  }
+}
+
+function prevQuestion() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    renderQuestion();
+  }
+}
+
+function showResults() {
+  const total = questions.length;
+  app.innerHTML = `
+    <div class="final">
+      <h2>🎉 Quiz Complete!</h2>
+      <p>Your Score: <strong>${score}</strong> out of <strong>${total}</strong></p>
+      <p>Percentage: ${Math.round((score / total) * 100)}%</p>
+      <button class="restart" id="restartBtn">Restart Quiz ↻</button>
+    </div>
+  `;
+  document.getElementById('restartBtn').onclick = () => {
+    currentIndex = 0;
+    score = 0;
+    userAnswers = questions.map(() => ({ selectedIndex: null, answered: false }));
+    renderQuestion();
+  };
+}
+
+renderQuestion();
+</script>
+</body>
+</html>
